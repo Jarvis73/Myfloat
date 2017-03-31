@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include "float.h"
+typedef unsigned long long qword;
 
 /*
   dword atof(char *s)
@@ -13,13 +14,15 @@
 		1) 二进制阶==0
 		2) 二进制阶<=24
 		3) 二进制阶>=25
-  说明：
-    当整数较大时会有误差。
+  存在的问题：
+    当整数较大时会有误差
+	小于0.00000001的数会有问题
 */
 dword atof(char *s)
 {
 	dword i, j, cnt = 1, tmp;
-	dword sign = 0, order, inte = 0, nume = 0, biorder = 0, binume = 0, intebiorder = 0;
+	dword sign = 0, order, inte = 0, nume = 0, biorder = 0, binume = 0, \
+		intebiorder = 0,exbinume = 0;
 	dword flt = 0;
 
 	while (*s == ' ') 
@@ -68,6 +71,17 @@ dword atof(char *s)
 			else
 				binume = (binume << 1); // + 0
 		}
+		for (j = 0; j < 32; j++)
+		{
+			nume <<= 1;
+			if (nume >= cnt)
+			{
+				exbinume = (exbinume << 1) + 1;
+				nume -= cnt;
+			}
+			else
+				exbinume = (exbinume << 1); // + 0
+		}
 	}
 	else // -------------------------- 继续读取余下的整数 ------------------------------
 	{	
@@ -113,9 +127,14 @@ dword atof(char *s)
 			biorder++;
 			tmp <<= 1;
 		}
-		inte = (binume >> (8 - biorder)) & 0xFF7FFFFF; // 去掉首位的1
-		if (((binume >> (7 - biorder)) & 1) == 1)
-			inte++;
+		if (biorder <= 8)
+		{
+			inte = (binume >> (8 - biorder)) & 0xFF7FFFFF; // 去掉首位的1
+			if (((binume >> (7 - biorder)) & 1) == 1)
+				inte++;
+		}
+		else
+			inte = ((binume << (biorder - 8)) | (exbinume >> (40 - biorder))) & 0xFF7FFFFF;
 		flt = sign | ((127 - 1 - biorder) << 23) | inte;
 	}
 	else if (intebiorder <= 24)
@@ -138,7 +157,96 @@ dword atof(char *s)
 }
 
 
+/*
+  
+*/
 char *ftoa(dword f)
 {
+	char s[50], *sp;
+	char rev[11], *srev;
+	char rev2[21], *srev2;
+	dword i;
+	dword sign, biorder, binume;
+	dword tmp, inte = 0, order = 0;
+	qword nume = 0;
+
+	sp = s;
+	srev = rev;
+	srev2 = rev2;
+	sign = (f >> 31);
+	biorder = ((f & 0x7FFFFFFF) >> 23);
+	binume = (f & 0x007FFFFF) | 0x00800000; // 高位补1
+
+	if (!sign)	// 输出符号
+		*(sp++) = '-';
+	
+	// 计算整数部分inte、小数部分nume、十进制阶order
+	if (biorder >= 127)
+	{	// 大于1
+		biorder -= 127;
+		if (biorder < 23)
+		{	// binume同时有整数和小数
+			inte = (binume >> (23 - biorder));
+			tmp = (0xFFFFFFFF >> (9 + biorder));
+			binume &= tmp;
+			// 小数二进制转十进制
+			biorder = 23 - biorder;
+			i = 1;
+			while (biorder--)
+			{
+				nume = nume * 10 + _pow(5, i++);
+				if (i > 19)	// 超过longlong的长度！
+					break;
+			}
+			while (nume)
+			{	// 小数部分二进制转十进制
+				*(srev2++) = nume % 10;
+				nume /= 10;
+			}
+			srev2--;
+		}
+		else
+		{	// binume只有整数; 大整数
+			biorder -= 23;
+			while (biorder--)
+			{	// 将binume与二进制biorder转化为新的binume和十进制order
+				binume <<= 1;
+				if (binume >= 2147483648) // 2**31
+				{
+					order++;
+					binume /= 10;
+				}
+			}
+			inte = binume;
+		}
+
+		// 输出到字符串s
+		while (inte)
+		{	// 整数部分二进制转十进制
+			*(srev++) = inte % 10;
+			inte /= 10;
+		}
+		srev--;
+		while (srev-- != rev)	// 输出整数
+			*(sp++) = *srev + '0';
+		while (order--)		// 输出整数末尾的0
+			*(sp++) = '0';
+		*(sp++) = '.';	// 输出小数点
+		i = 6;
+		if (srev2 == rev2)	// 输出小数
+		{
+			while (i--)
+				*(sp++) = '0';
+		}
+		else
+		{
+			while (i--)
+				*(sp++) = *(srev2--);
+		}
+	}
+	else
+	{	// 小于1
+		biorder = 126 - biorder; // 二进制小数部分开头0的个数
+	}
 
 }

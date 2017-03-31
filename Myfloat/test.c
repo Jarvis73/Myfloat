@@ -27,6 +27,6 @@ int main()
 	scanf("%f", &f);
 	printf("%.10f\n", f);
 
-
+	
 	return 0;
 }

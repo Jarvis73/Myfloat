@@ -1,0 +1,7 @@
+﻿  float.c
+e:\documents\github\myfloat\myfloat\float.c(164): warning C4013: “malloc”未定义；假设外部返回 int
+e:\documents\github\myfloat\myfloat\float.c(164): warning C4312: “类型转换”: 从“int”转换到更大的“char *”
+e:\documents\github\myfloat\myfloat\float.c(165): warning C4101: “i”: 未引用的局部变量
+e:\documents\github\myfloat\myfloat\float.c(190): warning C4716: “ftoa”: 必须返回一个值
+  Myfloat.vcxproj -> E:\documents\GitHub\Myfloat\x64\Debug\Myfloat.exe
+  Myfloat.vcxproj -> E:\documents\GitHub\Myfloat\x64\Debug\Myfloat.pdb (Full PDB)
