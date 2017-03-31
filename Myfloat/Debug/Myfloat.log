@@ -1,0 +1,4 @@
+﻿  float.c
+e:\documents\#computer orginization\myfloat\myfloat\float.c(144): warning C4716: “ftoa”: 必须返回一个值
+  Myfloat.vcxproj -> E:\documents\#Computer Orginization\Myfloat\Debug\Myfloat.exe
+  Myfloat.vcxproj -> E:\documents\#Computer Orginization\Myfloat\Debug\Myfloat.pdb (Full PDB)
