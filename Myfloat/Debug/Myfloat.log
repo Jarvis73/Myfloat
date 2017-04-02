@@ -1,4 +1,6 @@
-﻿  float.c
-e:\documents\#computer orginization\myfloat\myfloat\float.c(144): warning C4716: “ftoa”: 必须返回一个值
-  Myfloat.vcxproj -> E:\documents\#Computer Orginization\Myfloat\Debug\Myfloat.exe
-  Myfloat.vcxproj -> E:\documents\#Computer Orginization\Myfloat\Debug\Myfloat.pdb (Full PDB)
+﻿  test.c
+e:\documents\github\myfloat\myfloat\test.c(15): warning C4101: “i”: 未引用的局部变量
+  float.c
+  正在生成代码...
+  Myfloat.vcxproj -> E:\documents\GitHub\Myfloat\Debug\Myfloat.exe
+  Myfloat.vcxproj -> E:\documents\GitHub\Myfloat\Debug\Myfloat.pdb (Full PDB)
