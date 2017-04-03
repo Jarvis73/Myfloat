@@ -174,7 +174,6 @@ dword Jatof(char *s)
 	return flt;
 }
 
-
 /*
   char *ftoa(dword f)
   转化思路：
@@ -271,6 +270,175 @@ char *Jftoa(dword f)
 	*sp = '\0';
 	return s;
 }
+
+dword Jfadd(dword f1, dword f2)
+{
+	dword sign1, sign2, biorder1, biorder2;
+	qword binume1, binume2, tmp;
+	dword round_flag = 0, diforder, i;
+
+	if (((f1 & 0x7FFFFFFF) >> 23) < ((f2 & 0x7FFFFFFF) >> 23))
+		f1 ^= f2 ^= f1 ^= f2;
+
+	if (!(f2 & 0x7FFFFFFF))
+		return f1;
+
+	sign1 = f1 >> 31;
+	sign2 = f2 >> 31;
+	biorder1 = ((f1 & 0x7FFFFFFF) >> 23);
+	biorder2 = ((f2 & 0x7FFFFFFF) >> 23);
+	binume1 = (qword)((f1 & 0x007FFFFF) | 0x00800000);
+	binume2 = (qword)((f2 & 0x007FFFFF) | 0x00800000);
+
+	// 对阶
+	diforder = biorder1 - biorder2; 
+	if (diforder > 40) // 阶数相差太大则同时binume1左移和binume2右移
+	{
+		binume2 >>= (diforder - 40);
+		diforder = 40;
+	}
+	binume1 <<= diforder;
+
+	// 同号相加，异号相减
+	if (sign1 ^ sign2)
+		binume1 -= binume2;
+	else
+		binume1 += binume2;
+
+	// 调整阶
+	tmp = binume1;
+	i = 0;
+	while (tmp)
+	{	// 获取相加结果的位数
+		tmp >>= 1;
+		i++;
+	}
+	if (i >= 25)
+	{
+		binume1 >>= (i - 25);
+		if (binume1 & 1)
+			round_flag = 1;
+		else
+			round_flag = 0;
+		binume1 >>= 1;
+		binume1 += round_flag;
+		biorder1 += (i - 24 - diforder);
+	}
+	else if (i >= 1)
+	{
+		binume1 <<= (24 - i);
+		biorder1 -= (24 + diforder - i);
+	}
+	else // 0
+	{
+		return 0;
+	}
+	return (sign1 << 31) | (biorder1 << 23) | ((dword)binume1 & 0x007FFFFF);
+}
+
+dword Jfsub(dword f1, dword f2)
+{
+	return Jfadd(f1, f2 ^ 0x80000000);
+}
+
+dword Jfmul(dword f1, dword f2)
+{
+	dword sign1, sign2, biorder1, biorder2;
+	qword binume1, binume2, tmp;
+	dword i, round_flag = 0;
+
+	if (!f1 || !f2)	// +0 或 -0
+		return 0 | (((f1 >> 31) ^ (f2 >> 31)) ? 0x80000000 : 0);
+
+	sign1 = f1 >> 31;
+	sign2 = f2 >> 31;
+	biorder1 = ((f1 & 0x7FFFFFFF) >> 23);
+	biorder2 = ((f2 & 0x7FFFFFFF) >> 23);
+	binume1 = (qword)((f1 & 0x007FFFFF) | 0x00800000);
+	binume2 = (qword)((f2 & 0x007FFFFF) | 0x00800000);
+
+	// 符号
+	if (sign1 ^ sign2)
+		sign1 = 1;
+	else
+		sign1 = 0;
+
+	// 数
+	binume1 *= binume2;	// 如果最高位不进位，则乘积为47位
+	tmp = binume1;
+	i = 0;
+	while (tmp)
+	{
+		tmp >>= 1;
+		i++;
+	}
+	binume1 >>= (i - 25);
+	if (binume1 & 1)
+		round_flag = 1;
+	binume1 >>= 1;
+	binume1 += round_flag;
+
+	// 阶
+	biorder1 = (dword)((byte)biorder1 + (byte)biorder2 - (byte)127);
+	biorder1 += (i - 47);	// 加上小数乘法的进位
+
+	return (sign1 << 31) | (biorder1 << 23) | ((dword)binume1 & 0x007FFFFF);
+}
+
+dword Jfdiv(dword f1, dword f2)
+{
+	dword sign1, sign2, biorder1, biorder2;
+	qword binume1, binume2, tmp;
+	dword i, round_flag = 0;
+
+	if (!f2 && !(f1 & 0x80000000)) // 除数为0，被除数为正数
+		return POSINF;
+	if (!f2 && (f1 & 0x80000000)) // 除数为0，被除数为负数
+		return NEGINF;
+	if (!f1) // +0 或 -0
+		return 0 | ((f2 >> 31) ? 0x80000000 : 0);
+
+	sign1 = f1 >> 31;
+	sign2 = f2 >> 31;
+	biorder1 = ((f1 & 0x7FFFFFFF) >> 23);
+	biorder2 = ((f2 & 0x7FFFFFFF) >> 23);
+	binume1 = (qword)((f1 & 0x007FFFFF) | 0x00800000);
+	binume2 = (qword)((f2 & 0x007FFFFF) | 0x00800000);
+
+	// 符号
+	if (sign1 ^ sign2)
+		sign1 = 1;
+	else
+		sign1 = 0;
+
+	// 阶
+	biorder1 = (dword)((byte)biorder1 - (byte)biorder2 + (byte)127);
+	if (binume1 < binume2) // 1.xxxx < 1.yyyyy 商的阶为-1，否则为0
+		biorder1 -= 1;
+
+	// 数
+	binume1 <<= 40; // 放大
+	binume1 /= binume2;
+	tmp = binume1;
+	i = 0;
+	while (tmp)
+	{
+		tmp >>= 1;
+		i++;
+	}
+	binume1 >>= (i - 25);
+	if (binume1 & 1)
+		round_flag = 1;
+	binume1 >>= 1;
+	binume1 += round_flag;
+
+	return (sign1 << 31) | (biorder1 << 23) | ((dword)binume1 & 0x007FFFFF);
+}
+
+
+
+
+
 
 char Jnumerical[NUMEWIDTH][NUMEWIDTH] = {
 	"0000000000000000000000000000000000000000000000000",

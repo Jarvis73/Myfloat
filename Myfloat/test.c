@@ -6,26 +6,26 @@ extern char Jnumerical[NUMEWIDTH][NUMEWIDTH];
 union {
 	float f;
 	dword d;
-} u;
+} u, u1, u2;
 
 int main()
 {
-	/*char s[50];
-	float f;*/
-	dword a = 0x80000000, i;
-	
-	/*
-	scanf("%s", s);
-	u.d = Jatof(s);
-	printf("%.10f\n", u.f);
-	scanf("%f", &f);
-	printf("%.10f\n", f);
-*/ 
-	char *s;
-	scanf("%f", &u.f);
-	s = Jftoa(u.d);
-	printf("%s\n", s);
+	scanf("%f %f", &u1.f, &u2.f);
+	u.d = Jfadd(u1.d, u2.d);
+	printf("%f + %f = %.10f\n", u1.f, u2.f, u.f);
+	printf("%f + %f = %.10f\n", u1.f, u2.f, u1.f + u2.f);
+	u.d = Jfsub(u1.d, u2.d);
+	printf("%f - %f = %.10f\n", u1.f, u2.f, u.f);
+	printf("%f - %f = %.10f\n", u1.f, u2.f, u1.f - u2.f);
+	u.d = Jfmul(u1.d, u2.d);
+	printf("%f * %f = %.10f\n", u1.f, u2.f, u.f);
+	printf("%f * %f = %.10f\n", u1.f, u2.f, u1.f * u2.f);
+	u.d = Jfdiv(u1.d, u2.d);
+	printf("%f / %f = %.10f\n", u1.f, u2.f, u.f);
+	printf("%f / %f = %.10f\n", u1.f, u2.f, u1.f / u2.f);
+
 /*
+	dword a = 0x80000000, i;
 	for (i = 0; i < 32; i++)
 	{
 		if (u.d & a) printf("1");
